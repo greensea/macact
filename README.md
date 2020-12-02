@@ -15,7 +15,7 @@ macact <MAC 地址> <命令>
 局域网中有 RTSP 摄像头，其 MAC 地址是 00:11:22:33:44:55. 我们在服务器上用 ffmpeg 将 RTSP 流推到其他远程主机上。
 
 ```
-macact 00:11:22:33:44:55 ffmpeg -rtsp_transport tcp -i rtsp://%h/stream.sdp -c:a copy -c:v copy -f flv rtmp://remote-host.com/feed
+macact 00:11:22:33:44:55 "ffmpeg -rtsp_transport tcp -i rtsp://%h/stream.sdp -c:a copy -c:v copy -f flv rtmp://remote-host.com/feed"
 ```
 
 当摄像头的 IP 地址改变的时候（比如改变为 192.168.1.3），macact 就会执行这条命令
