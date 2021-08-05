@@ -55,6 +55,8 @@ func MACWatcher() {
 }
 
 func CommandHandler() {
+	ticker := time.NewTicker(10 * time.Second)
+
     select {
         case <- time.NewTicker(60 * time.Second).C:
             fmt.Printf("尚未查询到 %s 的 IP 地址\n", MAC)
@@ -72,7 +74,7 @@ func CommandHandler() {
                 c.Process.Kill()
                 fmt.Println("然后重新启动一个新的进程")
                 c = SpawnCommand()
-            case <- time.NewTicker(10 * time.Second).C:        
+            case <- ticker.C:        
                 fmt.Println("Tick 了一下")
                 if c.ProcessState != nil {
                     if c.ProcessState.Exited() == true {
