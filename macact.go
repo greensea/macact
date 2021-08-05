@@ -8,6 +8,10 @@ import (
     "os"
     "time"
     "os/exec"
+    
+    "net/http"
+    _ "net/http/pprof"
+
 )
 
 var IP string = ""
@@ -18,6 +22,10 @@ var IPCh = make(chan bool, 1)
 var MAC2IPReg = regexp.MustCompile("[ ]+")
 
 func main() {
+    go func() {
+        http.ListenAndServe("0.0.0.0:6060", nil)
+    }()
+    
     if len(os.Args) < 3 {
         fmt.Println("用法: <%s> <MAC 地址> <命令>");
         fmt.Println("命令中的 “%h” 会被替换成 MAC 对应的 IP 地址");
@@ -60,11 +68,15 @@ func CommandHandler() {
         select {    
             case <- IPCh:
                 /// 停止现有的进程，重新启动进程
+                fmt.Println("IP 地址改变了，杀死现有进程")
                 c.Process.Kill()
+                fmt.Println("然后重新启动一个新的进程")
                 c = SpawnCommand()
-            case <- time.NewTicker(1 * time.Second).C:                
+            case <- time.NewTicker(10 * time.Second).C:        
+                fmt.Println("Tick 了一下")
                 if c.ProcessState != nil {
                     if c.ProcessState.Exited() == true {
+                        fmt.Println("进程已经退出，重新执行一个新的进程")
                         c = SpawnCommand()
                     }
                 }
@@ -84,6 +96,7 @@ func SpawnCommand() *exec.Cmd {
         args = append(args, v)
     }
     
+    fmt.Println("执行指定的命令行命令")
     c := exec.Command(args[0], args[1:]...)
     for {
         fmt.Println(args)
@@ -93,7 +106,11 @@ func SpawnCommand() *exec.Cmd {
             time.Sleep(1 * time.Second)
             continue
         }
-        go c.Wait()
+        go func() {
+            fmt.Println("开始 Wait() 进程退出")
+            c.Wait()
+            fmt.Println("Wait() 进程退出结束")
+        }()
         break;
     }
     
@@ -101,6 +118,8 @@ func SpawnCommand() *exec.Cmd {
 }
 
 func MAC2IP(mac string) string {
+    fmt.Println("扫描一次 ARP 变动")
+    
     raw, err := ioutil.ReadFile("/proc/net/arp")
     if err != nil {
         panic(err)
@@ -115,6 +134,11 @@ func MAC2IP(mac string) string {
         }
         ip := tokens[0]
         MAC := tokens[3]
+        flags := tokens[2]
+        
+        if flags == "0x0" {
+            continue
+        }
         
         if MAC == mac {
             return ip
